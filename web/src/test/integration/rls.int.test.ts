@@ -77,6 +77,34 @@ beforeAll(async () => {
   projectIds.carolPrivateMarketing = find(carolProjects, 'Q3 Marketing Campaign');
 });
 
+describe('project creation', () => {
+  it('lets an authenticated user create a project and read it back via RETURNING', async () => {
+    // Mirrors features/projects/api.ts createProject() exactly:
+    // .insert({...}).select().single() — PostgREST issues this as
+    // INSERT ... RETURNING *, which requires the new row to also pass the
+    // SELECT policy. This regression-tests the bug where that RETURNING
+    // check failed because the owner's own project_members row (created by
+    // an AFTER INSERT trigger) did not exist yet at evaluation time.
+    const {
+      data: { user: aliceUser },
+    } = await clients.alice.auth.getUser();
+    if (!aliceUser) throw new Error('Expected an authenticated alice session');
+
+    const { data, error } = await clients.alice
+      .from('projects')
+      .insert({ name: 'RLS regression: new project via RETURNING', owner_id: aliceUser.id })
+      .select()
+      .single();
+
+    expect(error).toBeNull();
+    expect(data?.name).toBe('RLS regression: new project via RETURNING');
+
+    if (data) {
+      await clients.alice.from('projects').delete().eq('id', data.id);
+    }
+  });
+});
+
 describe('project isolation', () => {
   it('lets a member read a project they were invited to', async () => {
     const { data, error } = await clients.bob

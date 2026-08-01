@@ -68,9 +68,21 @@ CREATE POLICY profiles_update_self
 -- projects
 -- ============================================================================
 
+-- owner_id is checked directly, not only via is_project_member(id): PostgREST
+-- issues every insert as `INSERT ... RETURNING *` (return=representation),
+-- and RETURNING a newly inserted row must also pass its SELECT policy. The
+-- owner's own project_members row is created by the on_project_created
+-- AFTER INSERT trigger below, which has not run yet at the moment RETURNING
+-- is evaluated — so is_project_member(id) alone is still false for a row
+-- that was *just* legitimately created by its own owner, and the insert
+-- fails with a misleading "violates row-level security policy" error despite
+-- the WITH CHECK on the insert itself having already passed correctly.
 CREATE POLICY projects_select_members
   ON public.projects FOR SELECT TO authenticated
-  USING (public.is_project_member(id));
+  USING (
+    owner_id = (SELECT auth.uid())
+    OR public.is_project_member(id)
+  );
 
 -- WITH CHECK pins owner_id to the caller, so a user cannot create a project
 -- that claims to belong to someone else.
