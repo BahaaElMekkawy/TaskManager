@@ -1,0 +1,24 @@
+# Normalise line endings so the repo behaves identically on Windows, macOS and
+# Linux. This matters here: the migration runner and Docker entrypoints are
+# executed inside Linux containers, and a CRLF line ending produces the
+# notoriously opaque `bad interpreter: /bin/sh^M: no such file or directory`.
+* text=auto eol=lf
+
+# Files that must always be LF, even if a contributor's editor disagrees.
+*.sh      text eol=lf
+*.sql     text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+Dockerfile     text eol=lf
+*.dockerfile   text eol=lf
+.env.example   text eol=lf
+
+# Binary — never normalise or diff.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.woff  binary
+*.woff2 binary
