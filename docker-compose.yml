@@ -49,6 +49,7 @@ services:
       # run after that. Ordering matters — roles.sql can only set passwords for
       # roles that already exist, and logs.sql needs the _supabase database.
       - ./docker/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:ro
+      - ./docker/db/auth-ownership.sql:/docker-entrypoint-initdb.d/init-scripts/99-zz-auth-ownership.sql:ro
       - ./docker/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:ro
       - ./docker/db/_supabase.sql:/docker-entrypoint-initdb.d/migrations/97-_supabase.sql:ro
       - ./docker/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/98-realtime.sql:ro
@@ -172,7 +173,7 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_NAME: ${POSTGRES_DB}
       DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
-      DB_ENC_KEY: supabaserealtimekey
+      DB_ENC_KEY: ${REALTIME_DB_ENC_KEY}
       API_JWT_SECRET: ${JWT_SECRET}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
       ERL_AFLAGS: -proto_dist inet_tcp
@@ -266,6 +267,13 @@ services:
       SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
       AUTH_JWT_SECRET: ${JWT_SECRET}
       NEXT_PUBLIC_ENABLE_LOGS: 'false'
+    # The image's baked-in healthcheck calls /api/platform/profile, a
+    # Supabase Cloud endpoint that doesn't exist in self-hosted mode — it
+    # would always report unhealthy despite Studio serving the UI correctly.
+    # Nothing else depends on this service's health, so disabling it only
+    # affects `docker compose ps` cosmetics.
+    healthcheck:
+      disable: true
 
   # ----------------------------------------------------------------------------
   # Kong — single public entrypoint. The SPA only knows about this URL.
