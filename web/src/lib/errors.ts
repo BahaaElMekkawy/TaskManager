@@ -25,8 +25,6 @@ const ERROR_MESSAGES: Record<string, string> = {
   '22001': 'That text is too long.',
   '22P02': 'One of those values is not in the expected format.',
   '42501': 'You do not have permission to do that.',
-  // Raised by add_project_member_by_email when the email is not registered.
-  P0002: 'No account was found with that email address.',
 
   // --- PostgREST ---
   // Returned by .single() when the filter matched no rows. In an RLS-protected
@@ -47,13 +45,16 @@ function isPostgrestError(error: unknown): error is PostgrestError {
 }
 
 /**
- * The database raises these with an explicit message meant for the end user
- * (see the assignee trigger and the membership RPC). When the check constraint
- * carries a human-written message, prefer it over the generic mapping.
+ * The database raises these with an explicit message meant for the end user:
+ * '23514' from the assignee-membership trigger, 'P0001'/'P0002' from the
+ * add_project_member_by_email RPC (see supabase/migrations/...membership_rpc.sql).
+ * These are more specific than anything in ERROR_MESSAGES — the RPC's "no user
+ * registered with x@example.com" names the actual email that was typed — so
+ * they are preferred over the generic mapping rather than replaced by it.
  */
 function hasCustomDatabaseMessage(error: PostgrestError): boolean {
   return (
-    (error.code === '23514' || error.code === 'P0001') &&
+    (error.code === '23514' || error.code === 'P0001' || error.code === 'P0002') &&
     typeof error.message === 'string' &&
     // Postgres-generated constraint messages are recognisable by this prefix;
     // anything else came from a RAISE EXCEPTION we wrote ourselves.
