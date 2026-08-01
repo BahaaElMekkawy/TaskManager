@@ -1,0 +1,221 @@
+## Kong declarative configuration (DB-less mode).
+##
+## Kong is the single public entrypoint for the whole Supabase stack: the browser
+## only ever talks to http://localhost:8000, and Kong routes by path prefix to
+## the service behind it. That is why the SPA needs just one URL + one anon key.
+##
+## Placeholders below (`$SUPABASE_ANON_KEY` etc.) are substituted from the
+## environment at container start — see the `kong` service entrypoint in
+## docker-compose.yml. This file is mounted read-only as a template.
+##
+## Auth model:
+##   - `anon` consumer  -> holds the public anon key, mapped to the `anon` ACL group
+##   - `service_role`   -> holds the service key, mapped to the `admin` ACL group
+##   - `DASHBOARD`      -> HTTP basic auth, protects Supabase Studio
+##
+## IMPORTANT: Kong's key-auth only proves the caller presented a valid publishable
+## key. It grants no data access on its own — every row returned by PostgREST is
+## still filtered by Row Level Security based on the user's JWT. Kong is a gateway,
+## not the authorisation layer.
+
+_format_version: '2.1'
+_transform: true
+
+consumers:
+  - username: DASHBOARD
+  - username: anon
+    keyauth_credentials:
+      - key: $SUPABASE_ANON_KEY
+  - username: service_role
+    keyauth_credentials:
+      - key: $SUPABASE_SERVICE_KEY
+
+acls:
+  - consumer: anon
+    group: anon
+  - consumer: service_role
+    group: admin
+
+basicauth_credentials:
+  - consumer: DASHBOARD
+    username: $DASHBOARD_USERNAME
+    password: $DASHBOARD_PASSWORD
+
+services:
+  ## ---------------------------------------------------------------------------
+  ## Auth: routes that must stay open (no API key), because they are reached via
+  ## links in email or via a browser redirect where no key can be attached.
+  ## ---------------------------------------------------------------------------
+  - name: auth-v1-open
+    url: 'http://auth:9999/verify'
+    routes:
+      - name: auth-v1-open
+        strip_path: true
+        paths:
+          - /auth/v1/verify
+    plugins:
+      - name: cors
+
+  - name: auth-v1-open-callback
+    url: 'http://auth:9999/callback'
+    routes:
+      - name: auth-v1-open-callback
+        strip_path: true
+        paths:
+          - /auth/v1/callback
+    plugins:
+      - name: cors
+
+  - name: auth-v1-open-authorize
+    url: 'http://auth:9999/authorize'
+    routes:
+      - name: auth-v1-open-authorize
+        strip_path: true
+        paths:
+          - /auth/v1/authorize
+    plugins:
+      - name: cors
+
+  ## ---------------------------------------------------------------------------
+  ## Auth: everything else (signup, token, logout, user, admin) requires a key.
+  ## ---------------------------------------------------------------------------
+  - name: auth-v1
+    _comment: 'GoTrue: /auth/v1/* -> http://auth:9999/*'
+    url: 'http://auth:9999/'
+    routes:
+      - name: auth-v1-all
+        strip_path: true
+        paths:
+          - /auth/v1/
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - admin
+            - anon
+
+  ## ---------------------------------------------------------------------------
+  ## PostgREST: the application data API. RLS is enforced inside Postgres.
+  ## ---------------------------------------------------------------------------
+  - name: rest-v1
+    _comment: 'PostgREST: /rest/v1/* -> http://rest:3000/*'
+    url: 'http://rest:3000/'
+    routes:
+      - name: rest-v1-all
+        strip_path: true
+        paths:
+          - /rest/v1/
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: true
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - admin
+            - anon
+
+  ## ---------------------------------------------------------------------------
+  ## Realtime
+  ## ---------------------------------------------------------------------------
+  - name: realtime-v1-ws
+    _comment: 'Realtime: /realtime/v1/* -> ws://realtime:4000/socket/*'
+    url: 'http://realtime:4000/socket'
+    protocol: http
+    routes:
+      - name: realtime-v1-ws
+        strip_path: true
+        paths:
+          - /realtime/v1/
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - admin
+            - anon
+
+  - name: realtime-v1-rest
+    _comment: 'Realtime REST: /realtime/v1/api/* -> http://realtime:4000/api/*'
+    url: 'http://realtime:4000/api'
+    protocol: http
+    routes:
+      - name: realtime-v1-rest
+        strip_path: true
+        paths:
+          - /realtime/v1/api
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - admin
+            - anon
+
+  ## ---------------------------------------------------------------------------
+  ## Storage
+  ## ---------------------------------------------------------------------------
+  - name: storage-v1
+    _comment: 'Storage: /storage/v1/* -> http://storage:5000/*'
+    url: 'http://storage:5000/'
+    routes:
+      - name: storage-v1-all
+        strip_path: true
+        paths:
+          - /storage/v1/
+    plugins:
+      - name: cors
+
+  ## ---------------------------------------------------------------------------
+  ## postgres-meta: schema introspection, used by Studio. Admin group only —
+  ## the anon key must never be able to enumerate the schema.
+  ## ---------------------------------------------------------------------------
+  - name: meta
+    _comment: 'pg-meta: /pg/* -> http://meta:8080/*'
+    url: 'http://meta:8080/'
+    routes:
+      - name: meta-all
+        strip_path: true
+        paths:
+          - /pg/
+    plugins:
+      - name: key-auth
+        config:
+          hide_credentials: false
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - admin
+
+  ## ---------------------------------------------------------------------------
+  ## Studio dashboard, behind HTTP basic auth.
+  ## ---------------------------------------------------------------------------
+  - name: dashboard
+    _comment: 'Studio: / -> http://studio:3000/'
+    url: 'http://studio:3000/'
+    routes:
+      - name: dashboard-all
+        strip_path: true
+        paths:
+          - /
+    plugins:
+      - name: cors
+      - name: basic-auth
+        config:
+          hide_credentials: true
