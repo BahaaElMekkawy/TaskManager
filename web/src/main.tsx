@@ -4,7 +4,6 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 
 import { router } from '@/app/router';
-import { ThemeProvider } from '@/app/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/features/auth/auth-provider';
 import { createQueryClient } from '@/lib/query-client';
@@ -22,13 +21,11 @@ if (!rootElement) {
 // and sign-out, so it must sit inside QueryClientProvider to reach the client.
 createRoot(rootElement).render(
   <StrictMode>
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <RouterProvider router={router} />
-          <Toaster position="bottom-right" richColors closeButton />
-        </AuthProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <RouterProvider router={router} />
+        <Toaster position="bottom-right" richColors closeButton />
+      </AuthProvider>
+    </QueryClientProvider>
   </StrictMode>,
 );

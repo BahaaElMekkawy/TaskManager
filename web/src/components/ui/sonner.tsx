@@ -7,16 +7,13 @@ import {
 } from 'lucide-react';
 import { Toaster as Sonner, type ToasterProps } from 'sonner';
 
-import { useTheme } from '@/app/theme-provider';
-
 // Adapted from the shadcn/ui default: the generated version reads the theme
-// from `next-themes`, which this project does not use. See app/theme-provider.
+// from `next-themes`, which this project does not use — the app is
+// light-mode only, so the theme is fixed rather than read from context.
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { resolvedTheme } = useTheme();
-
   return (
     <Sonner
-      theme={resolvedTheme}
+      theme="light"
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,

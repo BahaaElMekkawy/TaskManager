@@ -7,22 +7,6 @@ afterEach(() => {
   cleanup();
 });
 
-// jsdom does not implement matchMedia; the theme provider reads it to detect
-// the OS colour scheme. Stubbed as "no dark mode" so component tests get a
-// deterministic default instead of throwing.
-if (typeof window !== 'undefined' && !window.matchMedia) {
-  window.matchMedia = (query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: () => undefined,
-    removeListener: () => undefined,
-    addEventListener: () => undefined,
-    removeEventListener: () => undefined,
-    dispatchEvent: () => false,
-  });
-}
-
 // jsdom implements neither the Pointer Events capture API nor scrollIntoView.
 // Radix UI's Select (used throughout the app) calls both while opening and
 // navigating its listbox, so without these no-op stubs every test that opens

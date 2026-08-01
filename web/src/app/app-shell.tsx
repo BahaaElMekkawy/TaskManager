@@ -1,9 +1,8 @@
-import { LogOutIcon, MoonIcon, SquareCheckBigIcon, SunIcon } from 'lucide-react';
+import { LogOutIcon, SquareCheckBigIcon } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { useTheme } from '@/app/theme-provider';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,7 +26,6 @@ function initialsOf(value: string): string {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
-  const { resolvedTheme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
@@ -60,21 +58,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
 
           <div className="flex-1" />
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            aria-label={
-              resolvedTheme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
-            }
-          >
-            {resolvedTheme === 'dark' ? (
-              <SunIcon className="size-4" aria-hidden />
-            ) : (
-              <MoonIcon className="size-4" aria-hidden />
-            )}
-          </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

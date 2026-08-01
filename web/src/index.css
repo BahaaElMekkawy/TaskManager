@@ -3,12 +3,9 @@
 
 /* Tailwind v4 is configured in CSS rather than a tailwind.config.js. The theme
  * below is the shadcn/ui token set: every colour is declared once as a CSS
- * custom property, mapped into Tailwind's theme via @theme inline, and
- * overridden wholesale under .dark. Components therefore only ever reference
- * semantic names (bg-background, text-muted-foreground) and pick up dark mode
- * for free. */
-
-@custom-variant dark (&:is(.dark *));
+ * custom property, mapped into Tailwind's theme via @theme inline. Components
+ * therefore only ever reference semantic names (bg-background,
+ * text-muted-foreground) rather than raw colour values. */
 
 :root {
   --radius: 0.625rem;
@@ -66,59 +63,6 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
-}
-
-.dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-
-  --status-todo: oklch(0.869 0.022 252.894);
-  --status-todo-bg: oklch(1 0 0 / 10%);
-  --status-progress: oklch(0.809 0.105 251.813);
-  --status-progress-bg: oklch(0.546 0.215 262.881 / 25%);
-  --status-done: oklch(0.792 0.209 151.711);
-  --status-done-bg: oklch(0.527 0.154 150.069 / 25%);
-
-  --priority-low: oklch(0.869 0.022 252.894);
-  --priority-low-bg: oklch(1 0 0 / 10%);
-  --priority-medium: oklch(0.828 0.189 84.429);
-  --priority-medium-bg: oklch(0.666 0.179 58.318 / 25%);
-  --priority-high: oklch(0.808 0.114 19.571);
-  --priority-high-bg: oklch(0.577 0.245 27.325 / 25%);
-
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
 @theme inline {

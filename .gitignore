@@ -168,5 +168,9 @@ test-results/
 Thumbs.db
 Desktop.ini
 
+# Personal study notes, not part of the graded deliverable.
+PROJECT_SUMMARY.md
+IMPLEMENTATION_DETAILS.md
+
 # The assignment brief itself is not part of the solution.
 Software Engineering Take-Home Assignment.pdf
