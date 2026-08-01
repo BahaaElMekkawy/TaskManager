@@ -7,7 +7,7 @@
 #
 #   1. wait for Postgres to accept connections
 #   2. wait for GoTrue to finish creating the `auth` schema
-#   3. apply any migration not yet recorded in public.schema_migrations
+#   3. apply any migration not yet recorded in supabase_migrations.schema_migrations
 #   4. seed demo data (users via the GoTrue admin API, domain rows via psql)
 #
 # The script is idempotent: re-running it applies only new migrations and
@@ -70,8 +70,14 @@ wait_for_auth_schema() {
 # 3. Migrations
 # ------------------------------------------------------------------------------
 ensure_migrations_table() {
+  # A dedicated schema, not public: PGRST_DB_SCHEMAS exposes every table in
+  # `public` over the REST API, and this bookkeeping table has no RLS reason
+  # to exist there — an earlier version lived in public.schema_migrations and
+  # was readable by anon, leaking migration filenames and timestamps to any
+  # caller. Naming matches the Supabase CLI's own convention for the same table.
   "${PSQL[@]}" --command "
-    CREATE TABLE IF NOT EXISTS public.schema_migrations (
+    CREATE SCHEMA IF NOT EXISTS supabase_migrations;
+    CREATE TABLE IF NOT EXISTS supabase_migrations.schema_migrations (
       version     text        PRIMARY KEY,
       applied_at  timestamptz NOT NULL DEFAULT now()
     );
@@ -81,7 +87,7 @@ ensure_migrations_table() {
 migration_applied() {
   local version=$1 result
   result=$("${PSQL[@]}" --tuples-only --no-align \
-    --command "SELECT EXISTS (SELECT 1 FROM public.schema_migrations WHERE version = '${version}');")
+    --command "SELECT EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations WHERE version = '${version}');")
   [ "$result" = 't' ]
 }
 
@@ -110,7 +116,7 @@ apply_migrations() {
     # schema_migrations honest even if the container is killed mid-run.
     "${PSQL[@]}" --single-transaction \
       --file "$file" \
-      --command "INSERT INTO public.schema_migrations (version) VALUES ('${version}');" \
+      --command "INSERT INTO supabase_migrations.schema_migrations (version) VALUES ('${version}');" \
       || fail "migration ${version} failed"
 
     applied=$((applied + 1))

@@ -230,12 +230,6 @@ export type Database = {
           },
         ];
       };
-      schema_migrations: {
-        Row: { version: string; applied_at: string };
-        Insert: { version: string; applied_at?: string };
-        Update: { version?: string; applied_at?: string };
-        Relationships: [];
-      };
     };
     Views: Record<never, never>;
     Functions: {
