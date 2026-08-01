@@ -11,8 +11,10 @@
 -- policy in this schema ultimately resolves to a lookup against this table.
 
 CREATE TABLE public.project_members (
-  project_id uuid              NOT NULL REFERENCES public.projects (id) ON DELETE CASCADE,
-  user_id    uuid              NOT NULL REFERENCES auth.users (id)      ON DELETE CASCADE,
+  project_id uuid                NOT NULL REFERENCES public.projects (id)  ON DELETE CASCADE,
+  -- profiles, not auth.users — see the note in the projects migration. The
+  -- members panel needs each member's display name in the same request.
+  user_id    uuid                NOT NULL REFERENCES public.profiles (id)  ON DELETE CASCADE,
   role       public.project_role NOT NULL DEFAULT 'member',
   created_at timestamptz       NOT NULL DEFAULT now(),
 

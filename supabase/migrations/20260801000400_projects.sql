@@ -4,7 +4,13 @@
 
 CREATE TABLE public.projects (
   id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_id    uuid        NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+
+  -- References profiles rather than auth.users. Integrity is identical
+  -- (profiles.id is itself a cascading FK to auth.users), but it lets PostgREST
+  -- embed the owner's name in a single request — `select=*,owner:profiles(*)`.
+  -- A foreign key into auth.users would be invisible to the API, forcing a
+  -- second round trip just to render "owned by Alice".
+  owner_id    uuid        NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
   name        text        NOT NULL,
   description text,
   created_at  timestamptz NOT NULL DEFAULT now(),
