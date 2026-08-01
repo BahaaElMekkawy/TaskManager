@@ -11,10 +11,13 @@ backend (Postgres + GoTrue + PostgREST behind Kong), Row Level Security as
 the actual authorization layer. Full requirements and rationale are in
 `README.md` — read that first for anything architectural.
 
-**Status as of 2026-08-01: feature-complete, verified end-to-end, 18 commits.**
-Build succeeds, 93 unit/component tests pass, 15 RLS integration tests pass
+**Status as of 2026-08-01: feature-complete, verified end-to-end, 20 commits.**
+Build succeeds, 93 unit/component tests pass, 16 RLS integration tests pass
 against the live stack, manual browser QA done (login, projects, tasks,
-filters, pagination, comments, status changes all confirmed working).
+filters, pagination, comments, status changes all confirmed working). One
+real production bug was found post-verification and fixed: project creation
+was completely broken due to an RLS SELECT-vs-trigger-timing issue — see
+"Things AI tools get wrong here" below before touching any owner/RLS policy.
 
 ## Commit style
 
@@ -139,3 +142,14 @@ These were real bugs found by testing a clean volume; if you touch the
   actually happened once during this build (see commit history around
   `fix(db): reference profiles...`) and required a `git reset --soft` to
   unwind. Check `git status --short` before every commit.
+- **If a table's owner row is populated by an `AFTER INSERT` trigger AND the
+  table's own INSERT policy relies on that trigger's output for the SELECT
+  policy too, direct inserts will fail.** `supabase-js`'s `.select()` after
+  `.insert()` makes PostgREST issue `INSERT ... RETURNING *`, and RETURNING a
+  row requires it to *also* pass the table's SELECT policy — evaluated before
+  any `AFTER INSERT` trigger has run. This broke project creation entirely
+  (see `20260801000900_rls_policies.sql`'s `projects_select_members`, fixed
+  to check `owner_id = auth.uid()` directly rather than solely through
+  `is_project_member()`, which depended on the trigger). If you add another
+  table with the same "owner gets auto-added to a join table" pattern, apply
+  the same direct-ownership fallback in its SELECT policy from the start.
