@@ -1,0 +1,17 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ],
+  /* Duplicated from tsconfig.app.json purely for tooling: editors and the
+   * shadcn CLI read the root tsconfig to resolve the "@/" alias, and a
+   * references-only file gives them nothing to work with. */
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
