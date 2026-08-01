@@ -215,9 +215,11 @@ describe('profile visibility', () => {
   });
 
   it('hides the profile of a user who shares no project', async () => {
-    // bob and carol collaborate with alice and with each other respectively,
-    // but never on the same project as each other in the seed data.
-    const { data, error } = await clients.bob
+    // alice's projects (Website Redesign, Mobile App Launch) and carol's
+    // (Internal Tooling as a member, Q3 Marketing Campaign as owner) never
+    // overlap in the seed data — unlike bob, who shares Internal Tooling
+    // with carol and Website Redesign with alice.
+    const { data, error } = await clients.alice
       .from('profiles')
       .select('id')
       .eq('email', 'carol@example.com')
