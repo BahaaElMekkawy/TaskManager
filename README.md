@@ -130,7 +130,7 @@ else — no local Node.js, PostgreSQL, or Supabase CLI installation is required
 to run the app.
 
 ```bash
-git clone <https://github.com/BahaaElMekkawy/TaskManager.git>
+git clone https://github.com/BahaaElMekkawy/TaskManager.git
 cd TaskManager
 cp .env.example .env
 docker compose up --build
