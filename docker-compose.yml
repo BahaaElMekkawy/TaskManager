@@ -15,9 +15,8 @@
 #
 # Ports (all configurable in .env):
 #   3000  web        the React application
-#   8000  kong       Supabase API gateway (auth, rest, realtime, storage)
+#   8000  kong       Supabase API gateway (auth, rest)
 #   3001  studio     Supabase Studio
-#   9000  inbucket   captured outbound email
 #   5432  db         Postgres
 # ==============================================================================
 
@@ -52,7 +51,6 @@ services:
       - ./docker/db/auth-ownership.sql:/docker-entrypoint-initdb.d/init-scripts/99-zz-auth-ownership.sql:ro
       - ./docker/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:ro
       - ./docker/db/_supabase.sql:/docker-entrypoint-initdb.d/migrations/97-_supabase.sql:ro
-      - ./docker/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/98-realtime.sql:ro
       - ./docker/db/logs.sql:/docker-entrypoint-initdb.d/migrations/99-logs.sql:ro
     command:
       - postgres
@@ -154,78 +152,6 @@ services:
     command: ['postgrest']
 
   # ----------------------------------------------------------------------------
-  # Realtime — not used by the application today, included as part of the
-  # standard Supabase surface. See README "Future improvements" for the
-  # live-updating task board it would enable.
-  # ----------------------------------------------------------------------------
-  realtime:
-    image: supabase/realtime:v2.34.47
-    container_name: taskmanager-realtime
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      PORT: 4000
-      DB_HOST: ${POSTGRES_HOST}
-      DB_PORT: ${POSTGRES_PORT}
-      DB_USER: supabase_admin
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_NAME: ${POSTGRES_DB}
-      DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
-      DB_ENC_KEY: ${REALTIME_DB_ENC_KEY}
-      API_JWT_SECRET: ${JWT_SECRET}
-      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
-      ERL_AFLAGS: -proto_dist inet_tcp
-      DNS_NODES: "''"
-      RLIMIT_NOFILE: '10000'
-      APP_NAME: realtime
-      SEED_SELF_HOST: 'true'
-      RUN_JANITOR: 'true'
-
-  # ----------------------------------------------------------------------------
-  # Storage + imgproxy — not used by the application today (no file uploads in
-  # the requirements), included for stack completeness.
-  # ----------------------------------------------------------------------------
-  storage:
-    image: supabase/storage-api:v1.19.3
-    container_name: taskmanager-storage
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-      rest:
-        condition: service_started
-    environment:
-      ANON_KEY: ${ANON_KEY}
-      SERVICE_KEY: ${SERVICE_ROLE_KEY}
-      POSTGREST_URL: http://rest:3000
-      PGRST_JWT_SECRET: ${JWT_SECRET}
-      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-      FILE_SIZE_LIMIT: 52428800
-      STORAGE_BACKEND: file
-      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
-      TENANT_ID: stub
-      REGION: stub
-      GLOBAL_S3_BUCKET: stub
-      ENABLE_IMAGE_TRANSFORMATION: 'true'
-      IMGPROXY_URL: http://imgproxy:5001
-    volumes:
-      - storage-data:/var/lib/storage
-
-  imgproxy:
-    image: darthsim/imgproxy:v3.8.0
-    container_name: taskmanager-imgproxy
-    restart: unless-stopped
-    environment:
-      IMGPROXY_BIND: ':5001'
-      IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
-      IMGPROXY_USE_ETAG: 'true'
-      IMGPROXY_ENABLE_WEBP_DETECTION: ${IMGPROXY_ENABLE_WEBP_DETECTION}
-    volumes:
-      - storage-data:/var/lib/storage:ro
-
-  # ----------------------------------------------------------------------------
   # postgres-meta — schema introspection API that powers Studio's table editor.
   # ----------------------------------------------------------------------------
   meta:
@@ -309,17 +235,6 @@ services:
       && /docker-entrypoint.sh kong docker-start'
 
   # ----------------------------------------------------------------------------
-  # Inbucket — captures any outbound email locally (password resets, invites),
-  # so no mail ever leaves the machine and flows stay inspectable.
-  # ----------------------------------------------------------------------------
-  inbucket:
-    image: inbucket/inbucket:3.0.3
-    container_name: taskmanager-inbucket
-    restart: unless-stopped
-    ports:
-      - '${INBUCKET_PORT}:9000'
-
-  # ----------------------------------------------------------------------------
   # Migrator — one-shot. Applies SQL migrations, then seeds demo data, then
   # exits 0. This is what removes any manual database setup step.
   #
@@ -378,4 +293,3 @@ services:
 
 volumes:
   db-data:
-  storage-data:

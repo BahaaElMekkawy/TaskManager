@@ -51,8 +51,6 @@ Browser ──► nginx (web:3000, static SPA)
    │
    └──► Kong (:8000) ──┬──► GoTrue      /auth/v1    (registration, login, JWTs)
                         ├──► PostgREST   /rest/v1    (public schema → REST API)
-                        ├──► Realtime    /realtime/v1
-                        ├──► Storage     /storage/v1
                         └──► pg-meta     /pg/        (schema introspection)
                                               │
                                               ▼
@@ -93,7 +91,7 @@ TaskManager/
 ├── docker-compose.yml       # the entire stack; `docker compose up --build` is the only command needed
 ├── .env.example              # every variable the stack needs, with working local defaults
 ├── docker/
-│   ├── kong/kong.yml          # API gateway routes (auth/rest/realtime/storage/meta)
+│   ├── kong/kong.yml          # API gateway routes (auth/rest/meta)
 │   ├── db/*.sql                # Postgres role passwords, JWT secret, internal schemas
 │   └── migrator/Dockerfile    # the one-shot provisioning container
 ├── supabase/
@@ -173,7 +171,6 @@ Run `docker compose logs migrator` to watch this happen.
 | http://localhost:3000 | The application |
 | http://localhost:3001 | Supabase Studio — browse the schema, confirm RLS is enabled, inspect seeded rows |
 | http://localhost:8000 | Kong (the API Kong fronts — not meant to be opened directly) |
-| http://localhost:9000 | Inbucket — catches any outbound email locally (registration confirmations, if ever enabled) |
 
 ### Demo accounts
 
@@ -305,6 +302,16 @@ filtered view linkable and bookmarkable, survives a refresh, and gets
 back/forward navigation for free through React Router — none of which a
 `useState`-based filter panel provides.
 
+#### Only Postgres, Auth, PostgREST, Kong, and Studio run — not the full Supabase surface
+
+The brief's "Backend" section lists PostgreSQL, Supabase Auth, and RLS — it
+does not ask for Realtime, Storage, or image processing. Earlier drafts ran
+the full self-hosted service set "for stack completeness," but that adds
+containers, secrets, and Kong routes that nothing in the app exercises. They
+were removed; `postgres-meta` and Studio stay because they let a reviewer
+inspect the schema and confirm RLS without installing anything, which is a
+real (if optional) part of the brief's "Developer Experience" evaluation.
+
 #### No custom backend service
 
 All business logic that would traditionally live in an Express/Nest layer —
@@ -352,9 +359,9 @@ real.
 
 ## Known limitations
 
-- **No file attachments.** Storage and imgproxy run as part of the stack (the
-  brief asks for the full local Supabase surface) but nothing in the app uses
-  them yet — there's no attachment field on tasks or comments.
+- **No file attachments.** There's no attachment field on tasks or comments,
+  and no Storage service running — see [Design decisions](#design-decisions)
+  for why Realtime/Storage/imgproxy were dropped from the stack.
 - **No real email delivery.** Registration auto-confirms locally; a
   production deployment would need a real SMTP provider and would need
   `ENABLE_EMAIL_AUTOCONFIRM` turned off.
@@ -366,9 +373,6 @@ real.
   public-facing deployment would want it in front of Kong.
 - **Comments cannot be edited**, only deleted, per the [Assumptions](#assumptions)
   above.
-- **The full official Supabase stack is heavier than the app needs.**
-  Realtime, Storage, and imgproxy run because the brief specifies the full
-  local Supabase surface, not because the app currently exercises them.
 - **`npm install` rather than `npm ci` in the web Dockerfile** — a Windows-
   generated lockfile does not pin the Linux-musl native binaries some
   dependencies (Tailwind's oxide engine, Rollup) need inside the Alpine build
@@ -378,10 +382,11 @@ real.
 
 ## Future improvements
 
-- **Realtime task boards.** The `realtime` service already runs; wiring
+- **Realtime task boards.** Adding the `realtime` service back and wiring
   `supabase-js`'s realtime subscriptions into the task list would turn it
-  into a live board without any new backend work.
-- **Task attachments** via the Storage service that's already provisioned.
+  into a live board.
+- **Task attachments** via a Storage service, if file uploads become a
+  requirement.
 - **Route-based code splitting** (`React.lazy` per top-level route) to bring
   the initial bundle down.
 - **Activity log** on a task (status changes, reassignments) — the data is
